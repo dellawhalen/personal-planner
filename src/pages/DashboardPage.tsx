@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -6,8 +6,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, GripVertical, NotebookText, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-import { usePlanner } from '../context/planner-context'
+import { usePlanner } from '../context/use-planner'
 import { defaultDashboardLayout } from '../lib/defaults'
+import { formatLocalDate, getLocalMonthKey } from '../lib/local-date'
+import { calculateBudgetTotals, formatCurrency, withBudgetRemaining } from '../lib/money'
 import type { DashboardWidgetConfig } from '../types'
 
 const presetLayouts: Record<'balanced' | 'productivity' | 'dreamy', DashboardWidgetConfig[]> = {
@@ -45,25 +47,14 @@ const allWidgetIds = ['greeting', 'schedule', 'goals', 'tasks', 'mood', 'budget'
 export default function DashboardPage() {
   const { goals, tasks, transactions, journalEntries, moodEntries, preferences, updatePreferences } = usePlanner()
   const [customizeMode, setCustomizeMode] = useState(false)
+  const [today] = useState(() => new Date())
   const [layoutDraft, setLayoutDraft] = useState<DashboardWidgetConfig[]>(preferences.dashboardLayout?.length ? preferences.dashboardLayout : defaultDashboardLayout)
   const [lastLayout, setLastLayout] = useState<DashboardWidgetConfig[]>(preferences.dashboardLayout?.length ? preferences.dashboardLayout : defaultDashboardLayout)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
-
-  useEffect(() => {
-    const nextLayout = preferences.dashboardLayout?.length ? preferences.dashboardLayout : defaultDashboardLayout
-    setLayoutDraft(nextLayout)
-    setLastLayout(nextLayout)
-  }, [preferences.dashboardLayout])
-
-  const today = new Date()
-  const todayTasks = tasks.filter((task) => task.dueDate === today.toISOString().slice(0, 10))
+  const todayTasks = tasks.filter((task) => task.dueDate === formatLocalDate(today))
   const currentMood = moodEntries[0]?.score ?? 3
-  const monthlyIncome = transactions
-    .filter((transaction) => transaction.type === 'income')
-    .reduce((sum, transaction) => sum + transaction.amount, 0)
-  const monthlyExpense = transactions
-    .filter((transaction) => transaction.type === 'expense')
-    .reduce((sum, transaction) => sum + transaction.amount, 0)
+  const currentMonth = getLocalMonthKey(today)
+  const monthlyTotals = withBudgetRemaining(calculateBudgetTotals(transactions, currentMonth))
 
   const visibleWidgets = layoutDraft.filter((widget) => widget.visible)
 
@@ -183,7 +174,7 @@ export default function DashboardPage() {
         <AnimatePresence>
           {visibleWidgets.map((widget) => (
             <motion.div key={widget.id} layout style={{ gridColumn: `span ${widget.size}` }} className="dashboard-widget min-w-0">
-              {renderWidget(widget.id, { greeting: preferences.greeting, todayTasks, goals, journalEntries: journalEntries, moodEntries, monthlyIncome, monthlyExpense, currentMood, tasks })}
+              {renderWidget(widget.id, { greeting: preferences.greeting, todayTasks, goals, journalEntries: journalEntries, moodEntries, monthlyIncome: monthlyTotals.incomeCents, monthlyExpense: monthlyTotals.expenseCents, currentMood, tasks })}
             </motion.div>
           ))}
         </AnimatePresence>
@@ -293,9 +284,9 @@ function renderWidget(
       return (
         <Panel title="Budget snapshot">
           <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between"><span>Income</span><strong>${monthlyIncome.toLocaleString()}</strong></div>
-            <div className="flex items-center justify-between"><span>Expenses</span><strong>-${monthlyExpense.toLocaleString()}</strong></div>
-            <div className="flex items-center justify-between border-t border-[#f0e7e2] pt-2 text-base font-semibold text-berry"><span>Remaining</span><strong>${(monthlyIncome - monthlyExpense).toLocaleString()}</strong></div>
+            <div className="flex items-center justify-between"><span>Income</span><strong>{formatCurrency(monthlyIncome)}</strong></div>
+            <div className="flex items-center justify-between"><span>Expenses</span><strong>-{formatCurrency(monthlyExpense)}</strong></div>
+            <div className="flex items-center justify-between border-t border-[#f0e7e2] pt-2 text-base font-semibold text-berry"><span>Remaining</span><strong>{formatCurrency(monthlyIncome - monthlyExpense)}</strong></div>
           </div>
         </Panel>
       )

@@ -35,6 +35,16 @@ A dreamy, local-first personal life planning website built with React, TypeScrip
 
 npm run build
 
+## Checks
+
+- `npm test` runs unit and IndexedDB persistence tests.
+- `npm run lint` runs Oxlint.
+- `npm run build` runs the TypeScript check and production build.
+
+Budget values are stored as integer cents. The database upgrade converts exact, unchanged starter transactions and preserves their original values. Historical values that cannot be safely interpreted are excluded from totals and require an explicit cents-or-dollars choice in the Budget page.
+
+Calendar and date-only planner fields use local calendar values; backups are validated before all planner tables are restored in a single IndexedDB transaction.
+
 ## Notes
 
 - This is intentionally a local-first MVP; data is stored inside the browser with IndexedDB and does not sync across devices.

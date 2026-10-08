@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 
 import { db } from '../lib/db'
-import { usePlanner } from '../context/planner-context'
+import { parseLocalDateTime } from '../lib/local-date'
+import { usePlanner } from '../context/use-planner'
 import type { Countdown } from '../types'
 
 const initialForm = {
@@ -14,9 +15,9 @@ const initialForm = {
 }
 
 function getCountdownLabel(target: string, time?: string) {
-  const end = new Date(`${target}${time ? `T${time}` : ''}`)
+  const end = parseLocalDateTime(target, time || '00:00')
+  if (!end) return 'Date not set'
   const diff = end.getTime() - Date.now()
-  if (Number.isNaN(diff)) return 'Date not set'
 
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
   if (days <= 0) return 'This is here now'

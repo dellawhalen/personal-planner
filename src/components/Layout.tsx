@@ -1,7 +1,7 @@
 import { CalendarDays, Flower2, Heart, ListTodo, NotebookPen, Settings, Sparkles, Wallet, Clock3 } from 'lucide-react'
 import { useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { usePlanner } from '../context/planner-context'
+import { usePlanner } from '../context/use-planner'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: Flower2 },

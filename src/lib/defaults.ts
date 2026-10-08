@@ -148,7 +148,7 @@ export const defaultTransactions: BudgetTransaction[] = [
   {
     id: 1,
     type: 'income',
-    amount: 2600,
+    amountCents: 260000,
     category: 'Salary',
     note: 'Monthly paycheck',
     date: '2026-10-01',
@@ -156,7 +156,7 @@ export const defaultTransactions: BudgetTransaction[] = [
   {
     id: 2,
     type: 'expense',
-    amount: 180,
+    amountCents: 18000,
     category: 'Groceries',
     note: 'Weekly market run',
     date: '2026-10-05',
@@ -164,7 +164,7 @@ export const defaultTransactions: BudgetTransaction[] = [
   {
     id: 3,
     type: 'expense',
-    amount: 90,
+    amountCents: 9000,
     category: 'Self-care',
     note: 'Facial and candle set',
     date: '2026-10-06',

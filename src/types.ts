@@ -73,7 +73,9 @@ export interface MoodEntry {
 export interface BudgetTransaction {
   id: number
   type: BudgetType
-  amount: number
+  amountCents: number | null
+  legacyAmount?: number
+  unitNeedsReview?: boolean
   category: string
   note: string
   date: string

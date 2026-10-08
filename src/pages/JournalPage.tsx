@@ -1,14 +1,15 @@
 import { useState } from 'react'
 
 import { db } from '../lib/db'
-import { usePlanner } from '../context/planner-context'
+import { formatLocalDate } from '../lib/local-date'
+import { usePlanner } from '../context/use-planner'
 import type { JournalEntry } from '../types'
 
 const initialEntry = {
   title: '',
   content: '',
   tags: '',
-  date: new Date().toISOString().slice(0, 10),
+  date: formatLocalDate(),
 }
 
 export default function JournalPage() {

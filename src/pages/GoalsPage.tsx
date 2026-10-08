@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Check, Plus } from 'lucide-react'
 
 import { db } from '../lib/db'
-import { usePlanner } from '../context/planner-context'
+import { usePlanner } from '../context/use-planner'
 import type { Goal, GoalCategory, GoalStatus, Priority } from '../types'
 
 const initialGoal: Omit<Goal, 'id'> = {

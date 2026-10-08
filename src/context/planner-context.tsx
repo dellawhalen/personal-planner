@@ -1,6 +1,5 @@
 import {
-  createContext,
-  useContext,
+  startTransition,
   useEffect,
   useMemo,
   useState,
@@ -9,6 +8,7 @@ import {
 
 import { db, seedDatabase } from '../lib/db'
 import { defaultPreferences } from '../lib/defaults'
+import { PlannerContext, type PlannerContextValue } from './planner-context-value'
 import type {
   AppPreferences,
   BudgetTransaction,
@@ -20,35 +20,6 @@ import type {
   Task,
 } from '../types'
 
-interface PlannerContextValue {
-  goals: Goal[]
-  tasks: Task[]
-  events: CalendarEventItem[]
-  journalEntries: JournalEntry[]
-  moodEntries: MoodEntry[]
-  transactions: BudgetTransaction[]
-  countdowns: Countdown[]
-  preferences: AppPreferences
-  setGoals: React.Dispatch<React.SetStateAction<Goal[]>>
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>
-  setEvents: React.Dispatch<React.SetStateAction<CalendarEventItem[]>>
-  setJournalEntries: React.Dispatch<React.SetStateAction<JournalEntry[]>>
-  setMoodEntries: React.Dispatch<React.SetStateAction<MoodEntry[]>>
-  setTransactions: React.Dispatch<React.SetStateAction<BudgetTransaction[]>>
-  setCountdowns: React.Dispatch<React.SetStateAction<Countdown[]>>
-  updatePreferences: (next: AppPreferences) => Promise<void>
-  refreshData: () => Promise<void>
-  addGoal: (goal: Goal) => Promise<void>
-  addTask: (task: Task) => Promise<void>
-  addEvent: (eventItem: CalendarEventItem) => Promise<void>
-  addJournalEntry: (entry: JournalEntry) => Promise<void>
-  addMoodEntry: (entry: MoodEntry) => Promise<void>
-  addTransaction: (transaction: BudgetTransaction) => Promise<void>
-  addCountdown: (countdown: Countdown) => Promise<void>
-}
-
-const PlannerContext = createContext<PlannerContextValue | undefined>(undefined)
-
 export function PlannerProvider({ children }: { children: ReactNode }) {
   const [goals, setGoals] = useState<Goal[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
@@ -59,8 +30,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [countdowns, setCountdowns] = useState<Countdown[]>([])
   const [preferences, setPreferences] = useState<AppPreferences>(defaultPreferences)
 
-  const refreshData = async () => {
-    await seedDatabase()
+  const refreshData = async (ensureSeed = false) => {
+    if (ensureSeed) await seedDatabase()
     const [loadedGoals, loadedTasks, loadedEvents, loadedJournalEntries, loadedMoodEntries, loadedTransactions, loadedCountdowns, loadedPreferences] = await Promise.all([
       db.goals.orderBy('id').reverse().toArray(),
       db.tasks.orderBy('id').reverse().toArray(),
@@ -72,18 +43,20 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       db.preferences.get('settings'),
     ])
 
-    setGoals(loadedGoals)
-    setTasks(loadedTasks)
-    setEvents(loadedEvents)
-    setJournalEntries(loadedJournalEntries)
-    setMoodEntries(loadedMoodEntries)
-    setTransactions(loadedTransactions)
-    setCountdowns(loadedCountdowns)
-    setPreferences({ ...defaultPreferences, ...loadedPreferences })
+    startTransition(() => {
+      setGoals(loadedGoals)
+      setTasks(loadedTasks)
+      setEvents(loadedEvents)
+      setJournalEntries(loadedJournalEntries)
+      setMoodEntries(loadedMoodEntries)
+      setTransactions(loadedTransactions)
+      setCountdowns(loadedCountdowns)
+      setPreferences({ ...defaultPreferences, ...loadedPreferences })
+    })
   }
 
   useEffect(() => {
-    void refreshData()
+    void refreshData(true)
   }, [])
 
   const updatePreferences = async (next: AppPreferences) => {
@@ -157,14 +130,4 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   )
 
   return <PlannerContext.Provider value={value}>{children}</PlannerContext.Provider>
-}
-
-export function usePlanner() {
-  const context = useContext(PlannerContext)
-
-  if (!context) {
-    throw new Error('usePlanner must be used within PlannerProvider')
-  }
-
-  return context
 }

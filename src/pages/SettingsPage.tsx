@@ -1,7 +1,8 @@
 import { useState } from 'react'
 
-import { db, resetDatabase } from '../lib/db'
-import { usePlanner } from '../context/planner-context'
+import { resetDatabase } from '../lib/db'
+import { createPlannerBackup, getBackupErrorMessage, restorePlannerBackup } from '../lib/backup'
+import { usePlanner } from '../context/use-planner'
 
 const accentPresets = ['#e9b1c8', '#a9b7a4', '#79525f', '#28252a', '#e8d9c9']
 
@@ -11,8 +12,7 @@ export default function SettingsPage() {
   const [status, setStatus] = useState('')
 
   const handleExport = async () => {
-    const payload = {
-      exportedAt: new Date().toISOString(),
+    const payload = createPlannerBackup({
       goals,
       tasks,
       events,
@@ -21,7 +21,7 @@ export default function SettingsPage() {
       transactions,
       countdowns,
       preferences,
-    }
+    })
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -35,49 +35,12 @@ export default function SettingsPage() {
 
   const handleImport = async () => {
     try {
-      const payload = JSON.parse(importText)
-      if (!payload || typeof payload !== 'object') {
-        throw new Error('Malformed JSON backup.')
-      }
-
-      if (Array.isArray(payload.goals)) {
-        await db.goals.clear()
-        await db.goals.bulkPut(payload.goals)
-      }
-      if (Array.isArray(payload.tasks)) {
-        await db.tasks.clear()
-        await db.tasks.bulkPut(payload.tasks)
-      }
-      if (Array.isArray(payload.events)) {
-        await db.events.clear()
-        await db.events.bulkPut(payload.events)
-      }
-      if (Array.isArray(payload.journalEntries)) {
-        await db.journalEntries.clear()
-        await db.journalEntries.bulkPut(payload.journalEntries)
-      }
-      if (Array.isArray(payload.moodEntries)) {
-        await db.moodEntries.clear()
-        await db.moodEntries.bulkPut(payload.moodEntries)
-      }
-      if (Array.isArray(payload.transactions)) {
-        await db.transactions.clear()
-        await db.transactions.bulkPut(payload.transactions)
-      }
-      if (Array.isArray(payload.countdowns)) {
-        await db.countdowns.clear()
-        await db.countdowns.bulkPut(payload.countdowns)
-      }
-      if (payload.preferences) {
-        await db.preferences.clear()
-        await db.preferences.put({ ...payload.preferences, id: 'settings' })
-      }
-
+      await restorePlannerBackup(JSON.parse(importText) as unknown)
       await refreshData()
       setStatus('Data imported successfully.')
       setImportText('')
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Import failed due to invalid data.')
+      setStatus(getBackupErrorMessage(error))
     }
   }
 

@@ -6,7 +6,9 @@ import { GripVertical, Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { db } from '../lib/db'
-import { usePlanner } from '../context/planner-context'
+import { createRecordId } from '../lib/ids'
+import { formatLocalDate } from '../lib/local-date'
+import { usePlanner } from '../context/use-planner'
 import type { Priority, Task } from '../types'
 
 const emptyTask = {
@@ -33,8 +35,8 @@ export default function TasksPage() {
 
   const visibleTasks = orderedTasks.filter((task) => {
     if (filter === 'completed') return task.completed
-    if (filter === 'today') return task.dueDate === new Date().toISOString().slice(0, 10)
-    if (filter === 'upcoming') return !task.completed && task.dueDate && task.dueDate >= new Date().toISOString().slice(0, 10)
+    if (filter === 'today') return task.dueDate === formatLocalDate()
+    if (filter === 'upcoming') return !task.completed && task.dueDate && task.dueDate >= formatLocalDate()
     return true
   })
 
@@ -45,12 +47,12 @@ export default function TasksPage() {
     const nextOrder = orderedTasks.length
 
     const task: Task = {
-      id: Date.now(),
+      id: createRecordId(),
       title: form.title.trim(),
       description: form.description,
       category: form.category,
       priority: form.priority,
-      dueDate: form.dueDate || new Date().toISOString().slice(0, 10),
+      dueDate: form.dueDate || formatLocalDate(),
       dueTime: form.dueTime,
       tags: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
       list: form.list,

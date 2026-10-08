@@ -5,12 +5,13 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 
 import { db } from '../lib/db'
-import { usePlanner } from '../context/planner-context'
+import { formatLocalDate, formatLocalDateTimeInput } from '../lib/local-date'
+import { usePlanner } from '../context/use-planner'
 import type { CalendarEventItem } from '../types'
 
 const emptyEvent = {
   title: '',
-  start: new Date().toISOString().slice(0, 16),
+  start: formatLocalDateTimeInput(),
   end: '',
   allDay: false,
   category: 'personal',
@@ -40,7 +41,7 @@ export default function CalendarPage() {
       id: Date.now(),
       title: form.title,
       start: form.allDay ? form.start.slice(0, 10) : form.start,
-      end: form.end || undefined,
+      end: form.end ? (form.allDay ? form.end.slice(0, 10) : form.end) : undefined,
       allDay: form.allDay,
       category: form.category,
       notes: form.notes,
@@ -52,21 +53,23 @@ export default function CalendarPage() {
     setForm(emptyEvent)
   }
 
-  const handleEventDrop = async (info: { event: { id: string; startStr: string; endStr: string | null; allDay: boolean } }) => {
+  const handleEventDrop = async (info: { event: { id: string; start: Date | null; end: Date | null; allDay: boolean } }) => {
+    if (!info.event.start) return
     const eventId = Number(info.event.id)
     await db.events.update(eventId, {
-      start: info.event.startStr,
-      end: info.event.endStr || undefined,
+      start: info.event.allDay ? formatLocalDate(info.event.start) : formatLocalDateTimeInput(info.event.start),
+      end: info.event.end ? (info.event.allDay ? formatLocalDate(info.event.end) : formatLocalDateTimeInput(info.event.end)) : undefined,
       allDay: info.event.allDay,
     })
     await refreshData()
   }
 
-  const handleEventResize = async (info: { event: { id: string; startStr: string; endStr: string | null } }) => {
+  const handleEventResize = async (info: { event: { id: string; start: Date | null; end: Date | null; allDay: boolean } }) => {
+    if (!info.event.start) return
     const eventId = Number(info.event.id)
     await db.events.update(eventId, {
-      start: info.event.startStr,
-      end: info.event.endStr || undefined,
+      start: info.event.allDay ? formatLocalDate(info.event.start) : formatLocalDateTimeInput(info.event.start),
+      end: info.event.end ? (info.event.allDay ? formatLocalDate(info.event.end) : formatLocalDateTimeInput(info.event.end)) : undefined,
     })
     await refreshData()
   }
@@ -83,7 +86,7 @@ export default function CalendarPage() {
             selectable
             editable
             events={calendarEvents}
-            select={(info) => setForm({ ...form, start: info.startStr, end: info.endStr || '', allDay: info.allDay })}
+            select={(info) => setForm({ ...form, start: formatLocalDateTimeInput(info.start), end: info.end ? formatLocalDateTimeInput(info.end) : '', allDay: info.allDay })}
             eventDrop={handleEventDrop}
             eventResize={handleEventResize}
             height={650}

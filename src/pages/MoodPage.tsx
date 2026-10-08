@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { BarChart, Bar, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts'
 
 import { db } from '../lib/db'
-import { usePlanner } from '../context/planner-context'
+import { formatLocalDate, formatLocalDateLabel } from '../lib/local-date'
+import { usePlanner } from '../context/use-planner'
 import type { MoodEntry, MoodScore } from '../types'
 
 const moodOptions: { value: MoodScore; label: string; emoji: string }[] = [
@@ -24,7 +25,7 @@ export default function MoodPage() {
       [...moodEntries]
         .sort((a, b) => a.date.localeCompare(b.date))
         .map((entry) => ({
-          date: new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          date: formatLocalDateLabel(entry.date),
           score: entry.score,
         })),
     [moodEntries],
@@ -35,7 +36,7 @@ export default function MoodPage() {
 
     const entry: MoodEntry = {
       id: Date.now(),
-      date: new Date().toISOString().slice(0, 10),
+      date: formatLocalDate(),
       score,
       note: note.trim() || undefined,
       tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),

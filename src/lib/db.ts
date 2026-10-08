@@ -20,8 +20,9 @@ import {
   defaultTasks,
   defaultTransactions,
 } from './defaults'
+import { normalizeLegacyBudgetTransaction } from './money'
 
-class PlannerDatabase extends Dexie {
+export class PlannerDatabase extends Dexie {
   goals!: Table<Goal, number>
   tasks!: Table<Task, number>
   events!: Table<CalendarEventItem, number>
@@ -31,8 +32,8 @@ class PlannerDatabase extends Dexie {
   countdowns!: Table<Countdown, number>
   preferences!: Table<AppPreferences & { id: string }, string>
 
-  constructor() {
-    super('a-life-in-bloom-db')
+  constructor(name = 'a-life-in-bloom-db') {
+    super(name)
     this.version(1).stores({
       goals: '++id, title, category, status, targetDate',
       tasks: '++id, title, status, dueDate, category, list',
@@ -42,6 +43,22 @@ class PlannerDatabase extends Dexie {
       transactions: '++id, date, type, category',
       countdowns: '++id, date, category',
       preferences: '&id',
+    })
+    this.version(2).stores({
+      goals: '++id, title, category, status, targetDate',
+      tasks: '++id, title, status, dueDate, category, list',
+      events: '++id, title, start, category',
+      journalEntries: '++id, date, title, mood',
+      moodEntries: '++id, date, score',
+      transactions: '++id, date, type, category',
+      countdowns: '++id, date, category',
+      preferences: '&id',
+    }).upgrade(async (transaction) => {
+      const table = transaction.table('transactions')
+      const records = await table.toArray()
+      for (const record of records) {
+        await table.put(normalizeLegacyBudgetTransaction(record))
+      }
     })
   }
 }
