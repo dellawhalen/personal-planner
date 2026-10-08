@@ -35,6 +35,16 @@ A dreamy, local-first personal life planning website built with React, TypeScrip
 
 npm run build
 
+## Vercel deployment
+
+Vercel should detect this as a Vite project. Use `npm run build` as the build command and `dist` as the output directory. `vercel.json` rewrites direct route requests to the React application so pages also work after refresh.
+
+There are currently no required environment variables. Do not commit local `.env` files or planner exports.
+
+## Deployment privacy
+
+The application has no authentication or server-side database. Anyone who can reach a deployment can open the planner UI. IndexedDB records stay in that visitor's browser and are not uploaded to Vercel, but they also do not sync across browsers, devices, or deployment origins. Use Vercel Deployment Protection or another access-control layer if the site itself should not be publicly reachable, and do not treat deployment as a private account or cloud backup. Export data before moving to a new origin and import it there manually.
+
 ## Checks
 
 - `npm test` runs unit and IndexedDB persistence tests.
