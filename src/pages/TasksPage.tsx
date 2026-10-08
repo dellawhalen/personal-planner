@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -8,6 +8,8 @@ import { motion } from 'framer-motion'
 import { db } from '../lib/db'
 import { createRecordId } from '../lib/ids'
 import { formatLocalDate } from '../lib/local-date'
+import { filterTasks } from '../lib/task-filter'
+import { reorderVisibleTasks } from '../lib/task-order'
 import { usePlanner } from '../context/use-planner'
 import type { Priority, Task } from '../types'
 
@@ -28,26 +30,23 @@ const emptyTask = {
 export default function TasksPage() {
   const { tasks, refreshData } = usePlanner()
   const [filter, setFilter] = useState<'all' | 'today' | 'upcoming' | 'completed'>('all')
+  const [listView, setListView] = useState<'all' | Task['list']>('all')
   const [form, setForm] = useState(emptyTask)
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   const orderedTasks = [...tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
-  const visibleTasks = orderedTasks.filter((task) => {
-    if (filter === 'completed') return task.completed
-    if (filter === 'today') return task.dueDate === formatLocalDate()
-    if (filter === 'upcoming') return !task.completed && task.dueDate && task.dueDate >= formatLocalDate()
-    return true
-  })
+  const visibleTasks = filterTasks(orderedTasks, listView, filter, formatLocalDate())
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!form.title.trim()) return
 
-    const nextOrder = orderedTasks.length
+    const existingTask = editingTaskId === null ? undefined : tasks.find((task) => task.id === editingTaskId)
 
     const task: Task = {
-      id: createRecordId(),
+      id: editingTaskId ?? createRecordId(),
       title: form.title.trim(),
       description: form.description,
       category: form.category,
@@ -59,12 +58,31 @@ export default function TasksPage() {
       status: form.completed ? 'completed' : 'pending',
       completed: form.completed,
       goalId: form.goalId,
-      order: nextOrder,
+      order: existingTask?.order ?? orderedTasks.length,
     }
 
     await db.tasks.put(task)
     await refreshData()
+    setEditingTaskId(null)
     setForm(emptyTask)
+  }
+
+  const beginEdit = (task: Task) => {
+    setEditingTaskId(task.id)
+    setForm({
+      title: task.title,
+      description: task.description,
+      category: task.category,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      dueTime: task.dueTime ?? '',
+      tags: task.tags.join(', '),
+      list: task.list,
+      status: task.status,
+      completed: task.completed,
+      goalId: task.goalId,
+    })
+    document.getElementById('task-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const toggleTask = async (task: Task) => {
@@ -84,12 +102,7 @@ export default function TasksPage() {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const currentOrder = [...orderedTasks]
-    const oldIndex = currentOrder.findIndex((task) => task.id === active.id)
-    const newIndex = currentOrder.findIndex((task) => task.id === over.id)
-    if (oldIndex < 0 || newIndex < 0) return
-
-    const reordered = arrayMove(currentOrder, oldIndex, newIndex)
+    const reordered = reorderVisibleTasks(orderedTasks, visibleTasks, Number(active.id), Number(over.id))
     const nextOrder = reordered.map((task, index) => ({ ...task, order: index }))
 
     await Promise.all(nextOrder.map((task) => db.tasks.put(task)))
@@ -98,10 +111,10 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[28px] border border-[#f0e7e2] bg-white/80 p-5 shadow-sm">
+      <section id="task-form" className="rounded-[28px] border border-[#f0e7e2] bg-white/80 p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="font-serif text-4xl text-charcoal">To-do lists</h1>
-          <div className="rounded-full bg-[#eef3ea] px-3 py-1 text-xs uppercase tracking-[0.18em] text-charcoal">{filter}</div>
+          <h1 className="font-serif text-4xl text-charcoal">{editingTaskId === null ? 'To-do lists' : 'Edit task'}</h1>
+          <div className="rounded-full bg-[#eef3ea] px-3 py-1 text-xs uppercase tracking-[0.18em] text-charcoal">{listView}</div>
         </div>
 
         <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-2">
@@ -121,13 +134,21 @@ export default function TasksPage() {
           </select>
           <input value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} placeholder="Tags (comma separated)" className="rounded-2xl border border-[#f0e7e2] bg-[#fffdfa] px-4 py-3 md:col-span-2" />
           <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-charcoal px-4 py-3 font-medium text-white md:col-span-2">
-            <Plus className="h-4 w-4" /> Add task
+            {editingTaskId === null && <Plus className="h-4 w-4" />} {editingTaskId === null ? 'Add task' : 'Update task'}
           </button>
         </form>
+        {editingTaskId !== null && <button type="button" onClick={() => { setEditingTaskId(null); setForm(emptyTask) }} className="mt-3 rounded-xl border border-[#f0e7e2] px-4 py-2 text-sm text-charcoal/70">Cancel edit</button>}
       </section>
 
       <section className="rounded-[28px] border border-[#f0e7e2] bg-white/80 p-5 shadow-sm">
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-4 flex flex-wrap gap-2" aria-label="Task list">
+          {(['all', 'daily', 'weekly', 'custom'] as const).map((view) => (
+            <button key={view} type="button" onClick={() => setListView(view)} aria-pressed={listView === view} className={`rounded-full px-3 py-1.5 text-xs uppercase tracking-[0.16em] ${listView === view ? 'bg-sage text-charcoal' : 'bg-[#f6f1ee] text-charcoal/70'}`}>
+              {view === 'all' ? 'All lists' : view}
+            </button>
+          ))}
+        </div>
+        <div className="mb-4 flex flex-wrap gap-2" aria-label="Task status filter">
           {(['all', 'today', 'upcoming', 'completed'] as const).map((view) => (
             <button key={view} onClick={() => setFilter(view)} className={`rounded-full px-3 py-1.5 text-xs uppercase tracking-[0.16em] ${filter === view ? 'bg-charcoal text-white' : 'bg-[#f6f1ee] text-charcoal/70'}`}>
               {view}
@@ -139,7 +160,7 @@ export default function TasksPage() {
           <SortableContext items={visibleTasks.map((task) => task.id)} strategy={rectSortingStrategy}>
             <div className="space-y-3">
               {visibleTasks.map((task) => (
-                <SortableTaskItem key={task.id} task={task} onToggle={() => void toggleTask(task)} onDelete={() => void deleteTask(task.id)} />
+                <SortableTaskItem key={task.id} task={task} onToggle={() => void toggleTask(task)} onDelete={() => void deleteTask(task.id)} onEdit={() => beginEdit(task)} />
               ))}
             </div>
           </SortableContext>
@@ -149,7 +170,7 @@ export default function TasksPage() {
   )
 }
 
-function SortableTaskItem({ task, onToggle, onDelete }: { task: Task; onToggle: () => void; onDelete: () => void }) {
+function SortableTaskItem({ task, onToggle, onDelete, onEdit }: { task: Task; onToggle: () => void; onDelete: () => void; onEdit: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
 
   return (
@@ -166,6 +187,7 @@ function SortableTaskItem({ task, onToggle, onDelete }: { task: Task; onToggle: 
       </div>
       <div className="flex items-center gap-2">
         <span className="rounded-full bg-[#f5ebef] px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-berry">{task.priority}</span>
+        <button type="button" onClick={onEdit} className="rounded-full border border-[#f0e7e2] px-3 py-1 text-xs uppercase tracking-[0.12em] text-charcoal/60">Edit</button>
         <button onClick={onDelete} className="rounded-full border border-[#f0e7e2] px-3 py-1 text-xs uppercase tracking-[0.12em] text-charcoal/60">Delete</button>
       </div>
     </motion.div>

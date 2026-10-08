@@ -16,8 +16,8 @@ export interface Goal {
   progress: number
   milestones: string[]
   subtasks: string[]
-  completedMilestones: string[]
-  completedSubtasks: string[]
+  completedMilestones?: string[]
+  completedSubtasks?: string[]
   notes: string
   image?: string
   associatedTaskIds: number[]

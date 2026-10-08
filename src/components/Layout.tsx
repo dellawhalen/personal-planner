@@ -1,5 +1,5 @@
-import { CalendarDays, Flower2, Heart, ListTodo, NotebookPen, Settings, Sparkles, Wallet, Clock3 } from 'lucide-react'
-import { useEffect } from 'react'
+import { CalendarDays, Clock3, Flower2, Heart, ListTodo, Menu, NotebookPen, Settings, Sparkles, Wallet, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { usePlanner } from '../context/use-planner'
 
@@ -18,6 +18,7 @@ const navItems = [
 export default function Layout() {
   const { preferences } = usePlanner()
   const siteName = preferences.siteName?.trim() || 'a life in bloom.'
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     document.title = siteName
@@ -72,7 +73,40 @@ export default function Layout() {
             </div>
             <div className="hidden font-dot text-xs uppercase text-charcoal/55 md:block">Personal sanctuary <span className="text-berry">✦</span></div>
             <span className="ml-auto hidden font-dot text-[10px] uppercase text-charcoal/45 sm:block">local mode · saved on this device</span>
+            <button
+              type="button"
+              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-xl border border-dotted border-[#d8b9c5] bg-[#f7e8ef] text-berry lg:hidden"
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </header>
+
+          {mobileMenuOpen && (
+            <nav
+              id="mobile-navigation"
+              aria-label="Mobile navigation"
+              className="grid grid-cols-2 gap-2 border-b border-dotted border-[#e7d9d7] bg-[#fffaf9] p-4 sm:grid-cols-3 lg:hidden"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setMobileMenuOpen(false)
+              }}
+            >
+              {navItems.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) => `flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 font-pixel text-sm transition ${isActive ? 'border-dotted border-[#d8b9c5] bg-[#f7e8ef] text-berry' : 'border-transparent text-charcoal/75 hover:bg-[#f9f4f1]'}`}
+                >
+                  <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
 
           <div className="p-5 md:p-8">
             <Outlet />
