@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DotGothic16&family=Pixelify+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'DM Sans', Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #28252a;
+  background: #f8f5f2;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle, rgba(121, 82, 95, 0.08) 1px, transparent 1.2px) 0 0 / 18px 18px,
+    radial-gradient(circle at top, rgba(233, 177, 200, 0.16), transparent 28%),
+    linear-gradient(135deg, #f8f5f2 0%, #f5efe9 100%);
+  color: #28252a;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-family: 'Pixelify Sans', 'Trebuchet MS', sans-serif;
+  font-weight: 400;
+}
+
+.font-serif {
+  font-family: 'Pixelify Sans', 'Trebuchet MS', sans-serif;
+}
+
+.font-pixel,
+nav a {
+  font-family: 'Pixelify Sans', 'Trebuchet MS', sans-serif;
+}
+
+.font-dot,
+.text-xs.uppercase,
+.fc-daygrid-day-number,
+.fc-col-header-cell-cushion {
+  font-family: 'DotGothic16', 'Courier New', monospace;
+}
+
+.retro-window-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.retro-window-dots i {
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(40, 37, 42, 0.18);
+  border-radius: 2px;
+  background: #e9b1c8;
+}
+
+.retro-window-dots i:nth-child(2) {
+  background: #e8d9c9;
+}
+
+.retro-window-dots i:nth-child(3) {
+  background: #a9b7a4;
+}
+
+.dotted-frame {
+  border-style: dotted !important;
+}
+
+input,
+select,
+textarea {
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+  outline: 2px solid rgba(121, 82, 95, 0.35);
+  outline-offset: 2px;
+}
+
+.fc {
+  font-family: 'DM Sans', Arial, sans-serif;
+}
+
+.fc-toolbar-title {
+  font-family: 'Pixelify Sans', 'Trebuchet MS', sans-serif;
+  font-size: 2rem !important;
+}
+
+.fc-daygrid-day-number,
+.fc-col-header-cell-cushion {
+  color: #28252a;
+}
+
+@media (max-width: 767px) {
+  .dashboard-widget {
+    grid-column: 1 / -1 !important;
+  }
+}
